@@ -1,4 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
+// @ts-ignore
+import TurndownService from 'turndown';
 
 // Remember to rename these classes and interfaces!
 
@@ -16,10 +18,37 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu, file) => {
+				menu.addItem((item) => {
+					item
+						.setTitle("Print file path 👈")
+						.setIcon("document")
+						.onClick(async () => {
+							new Notice(file.path);
+						});
+				});
+			})
+		);
+
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			new Notice('This is a notice!');
+			requestUrl({
+				url: 'https://juejin.cn/post/7237439385908707386',
+				method: 'GET'
+			}).then((response) => {
+				let parser  = new DOMParser();
+				let doc = parser.parseFromString(response.text, 'text/html')
+				let body = doc.querySelector('article.article')?.innerHTML
+				const turndownService = new TurndownService({
+					codeBlockStyle: 'fenced',
+					headingStyle: 'atx'
+				})
+				let markdown = turndownService.turndown(body!)
+				console.log(markdown)
+			})
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
