@@ -1,6 +1,7 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, requestUrl, TFile } from 'obsidian';
 // @ts-ignore
 import TurndownService from 'turndown';
+import {gfm} from 'turndown-plugin-gfm';
 
 // Remember to rename these classes and interfaces!
 
@@ -22,10 +23,11 @@ export default class MyPlugin extends Plugin {
 			this.app.workspace.on("file-menu", (menu, file) => {
 				menu.addItem((item) => {
 					item
-						.setTitle("Print file path 👈")
+						.setTitle("新建掘金文章")
 						.setIcon("document")
 						.onClick(async () => {
-							new Notice(file.path);
+							let path = file instanceof TFile ? file.parent!.path : file.path;
+							new SampleModal(this.app, path).open()
 						});
 				});
 			})
@@ -35,20 +37,7 @@ export default class MyPlugin extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			new Notice('This is a notice!');
-			requestUrl({
-				url: 'https://juejin.cn/post/7237439385908707386',
-				method: 'GET'
-			}).then((response) => {
-				let parser  = new DOMParser();
-				let doc = parser.parseFromString(response.text, 'text/html')
-				let body = doc.querySelector('article.article')?.innerHTML
-				const turndownService = new TurndownService({
-					codeBlockStyle: 'fenced',
-					headingStyle: 'atx'
-				})
-				let markdown = turndownService.turndown(body!)
-				console.log(markdown)
-			})
+
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -58,53 +47,53 @@ export default class MyPlugin extends Plugin {
 		statusBarItemEl.setText('Status Bar Text');
 
 		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
+		// this.addCommand({
+		// 	id: 'open-sample-modal-simple',
+		// 	name: 'Open sample modal (simple)',
+		// 	callback: () => {
+		// 		new SampleModal(this.app).open();
+		// 	}
+		// });
 		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
+		// this.addCommand({
+		// 	id: 'sample-editor-command',
+		// 	name: 'Sample editor command',
+		// 	editorCallback: (editor: Editor, view: MarkdownView) => {
+		// 		console.log(editor.getSelection());
+		// 		editor.replaceSelection('Sample Editor Command');
+		// 	}
+		// });
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+		// this.addCommand({
+		// 	id: 'open-sample-modal-complex',
+		// 	name: 'Open sample modal (complex)',
+		// 	checkCallback: (checking: boolean) => {
+		// 		// Conditions to check
+		// 		const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		// 		if (markdownView) {
+		// 			// If checking is true, we're simply "checking" if the command can be run.
+		// 			// If checking is false, then we want to actually perform the operation.
+		// 			if (!checking) {
+		// 				new SampleModal(this.app).open();
+		// 			}
+		//
+		// 			// This command will only show up in Command Palette when the check function returns true
+		// 			return true;
+		// 		}
+		// 	}
+		// });
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+		// this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		// 	console.log('click', evt);
+		// });
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		// this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	onunload() {
@@ -121,18 +110,65 @@ export default class MyPlugin extends Plugin {
 }
 
 class SampleModal extends Modal {
-	constructor(app: App) {
+
+	articleId: string;
+	path: string;
+
+	constructor(app: App, path: string) {
 		super(app);
+		this.path = path;
 	}
 
 	onOpen() {
 		const {contentEl} = this;
-		contentEl.setText('Woah!');
+		contentEl.createEl("h1", {text: "新建掘金文章"});
+
+		new Setting(contentEl).setName("文章id").addText((text) => {
+			text.setValue(this.articleId).onChange((value) => {
+				this.articleId = value
+			})
+		})
+
+		new Setting(contentEl).addButton((button) => {
+			button.setButtonText("提交").setCta().onClick(() => {
+				if (!this.articleId?.trim()) {
+					new Notice("请输入文章id");
+					return;
+				}
+
+				requestUrl({
+					url: 'https://juejin.cn/post/' + this.articleId,
+					method: 'GET'
+				}).then((response) => {
+					let parser = new DOMParser();
+					let doc = parser.parseFromString(response.text, 'text/html')
+					let title = doc.querySelector('h1.article-title')?.textContent
+					let body = doc.querySelector('div#article-root')?.innerHTML
+					return this.solveArticle(title!.trim(), body!)
+				}).catch((error) => {
+					console.log(error)
+					new Notice("获取失败")
+				})
+				this.close();
+			})
+		})
 	}
 
 	onClose() {
 		const {contentEl} = this;
 		contentEl.empty();
+	}
+
+	async solveArticle(title: string, articleHtml: string) {
+		const turndownService = new TurndownService({
+			codeBlockStyle: 'fenced',
+			headingStyle: 'atx'
+		})
+		turndownService.remove('style')
+		gfm(turndownService)
+		let markdown = turndownService.turndown(articleHtml)
+		await this.app.vault.create(`${this.path}/${title.replace(/[*"\\/<>:|?]/g, ' ')}.md`, markdown)
+		new Notice("获取文章成功！")
 	}
 }
 
