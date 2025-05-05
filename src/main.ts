@@ -3,8 +3,6 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import TurndownService from 'turndown';
 import {gfm} from 'turndown-plugin-gfm';
 
-// Remember to rename these classes and interfaces!
-
 interface MyPluginSettings {
 	mySetting: string;
 }
@@ -23,7 +21,7 @@ export default class MyPlugin extends Plugin {
 			this.app.workspace.on("file-menu", (menu, file) => {
 				menu.addItem((item) => {
 					item
-						.setTitle("新建掘金文章")
+						.setTitle("获取掘金文章")
 						.setIcon("document")
 						.onClick(async () => {
 							let path = file instanceof TFile ? file.parent!.path : file.path;
@@ -121,7 +119,7 @@ class SampleModal extends Modal {
 
 	onOpen() {
 		const {contentEl} = this;
-		contentEl.createEl("h1", {text: "新建掘金文章"});
+		contentEl.createEl("h1", {text: "获取掘金文章"});
 
 		new Setting(contentEl).setName("文章id").addText((text) => {
 			text.setValue(this.articleId).onChange((value) => {
@@ -147,7 +145,7 @@ class SampleModal extends Modal {
 					return this.solveArticle(title!.trim(), body!)
 				}).catch((error) => {
 					console.log(error)
-					new Notice("获取失败")
+					new Notice("获取掘金文章失败，请检查文章id")
 				})
 				this.close();
 			})
@@ -168,7 +166,7 @@ class SampleModal extends Modal {
 		gfm(turndownService)
 		let markdown = turndownService.turndown(articleHtml)
 		await this.app.vault.create(`${this.path}/${title.replace(/[*"\\/<>:|?]/g, ' ')}.md`, markdown)
-		new Notice("获取文章成功！")
+		new Notice("获取掘金文章成功！")
 	}
 }
 
