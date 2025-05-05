@@ -1,11 +1,10 @@
 {
-	"id": "obsidian-juejin",
-	"name": "掘金文章助手",
+	"id": "juejin-article-helper",
+	"name": "JueJin Article Helper",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "自动保存掘金文章.",
+	"description": "A small plugin designed to quickly record articles from the JueJin platform.",
 	"author": "Moyeen",
 	"authorUrl": "https://github.com/herburst",
-	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": true
 }
