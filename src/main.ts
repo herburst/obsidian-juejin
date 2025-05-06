@@ -21,7 +21,7 @@ export default class JueJinPlugin extends Plugin {
 						.setIcon("document")
 						.onClick(async () => {
 							let path = file instanceof TFile ? file.parent!.path : file.path;
-							new SampleModal(this.app, path, this.settings).open()
+							new JueJinModal(this.app, path, this.settings).open()
 						});
 				});
 			})
@@ -43,7 +43,7 @@ export default class JueJinPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
+class JueJinModal extends Modal {
 
 	articleId: string;
 	path: string;
@@ -83,11 +83,8 @@ class SampleModal extends Modal {
 					url: 'https://juejin.cn/post/' + this.articleId,
 					method: 'GET'
 				}).then((response) => {
-					let parser = new DOMParser();
-					let doc = parser.parseFromString(response.text, 'text/html')
-					let title = doc.querySelector('h1.article-title')?.textContent
-					let body = doc.querySelector('div#article-root')?.innerHTML
-					return this.solveArticle(title!.trim(), body!)
+					let $ = cheerio.load(response.text);
+					return this.solveArticle($)
 				}).catch((error) => {
 					console.log(error)
 					new Notice("获取掘金文章失败，请检查文章id")
@@ -102,11 +99,11 @@ class SampleModal extends Modal {
 		contentEl.empty();
 	}
 
-	async solveArticle(title: string, articleHtml: string) {
-		let $ = cheerio.load(articleHtml);
-		await this.downloadAnnex($)
-		let markdown = this.turndownService.turndown($.html())
-		await this.app.vault.create(`${this.path}/${title.replace(/[*"\\/<>:|?]/g, ' ')}.md`, markdown)
+	async solveArticle($: Root) {
+		let body = cheerio.load($('div#article-root')?.html()!)
+		await this.downloadAnnex(body)
+		let markdown = this.turndownService.turndown(body.html())
+		await this.app.vault.create(`${this.path}/${$('h1.article-title')?.text().trim().replace(/[*"\\/<>:|?]/g, ' ')}.md`, markdown)
 		new Notice("获取掘金文章成功！")
 	}
 
