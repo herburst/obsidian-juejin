@@ -120,7 +120,8 @@ class JueJinModal extends Modal {
 				url: src,
 				method: 'GET'
 			}).then((response) => {
-				let suffix = alt === '' ? '.png' : alt.match(/\.[a-zA-Z0-9]+$/)![0];
+				// let suffix = alt === '' ? '.png' : alt.match(/\.[a-zA-Z0-9]+$/)![0];
+				let suffix = '.png';
 				let localName = `${this.jueJinSetting.annexPath}/${uuidv4()}${suffix}`;
 				this.app.vault.createBinary(localName, response.arrayBuffer)
 				return {src, localName};
